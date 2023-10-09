@@ -69,9 +69,7 @@ exports.forgotPassword = catchAsyncError(async (req, res, next) => {
   const resetToken = user.getResetPasswordToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetPasswordUrl = `${req.protocol}://${req.get(
-    "host"
-  )}/api/v1/password/reset/${resetToken}`;
+  const resetPasswordUrl = `http://localhost/api/password/reset/${resetToken};`;
 
   const message = `your password reset token is :- \n\n ${resetPasswordUrl} 
     \n\n If you have not requested this email then please ignore it`;
@@ -120,3 +118,105 @@ exports.resetPassword = catchAsyncError(async(req, res, next) => {
     sendToken(user, 200, res)
 })
 
+//user details
+exports.getUserDetails = catchAsyncError(async(req, res, next) => {
+  const user = await User.findById(req.user.id)
+
+  res.status(200).json({
+    success: true,
+    user
+  })
+})
+
+//update password
+exports.updatePassword = catchAsyncError(async(req, res, next) => {
+  const user = await User.findById(req.user.id).select("+password")
+  
+  const isPasswordMatch = await user.comparePassword(req.body.oldPassword)
+
+  if(!isPasswordMatch){
+    return next(new ErrorHandler("Oldpassword is not currect", 404))
+  }
+
+  if(req.body.newPassword !== req.body.confirmPassword){
+    return next(new ErrorHandler("password does not match", 404))
+  }
+
+  user.password = req.body.newPassword;
+  await user.save()
+  sendToken(user, 200, res)
+})
+
+//update user details
+exports.updateProfile = catchAsyncError(async(req, res, next) => {
+  const newUserData = {
+    username: req.body.name,
+    email: req.body.email
+  }
+
+  const user = await User.findByIdAndUpdate(req.user.id, newUserData, {
+    new: true,
+    runValidators: true,
+    useFindModify: false
+  })
+
+  res.status(200).json({
+    success: true,
+    user
+  })
+})
+
+//get all users
+exports.getAllusers = catchAsyncError(async(req, res, next) => {
+  const users = await User.find()
+  
+  res.status(200).json({
+    users
+  })
+})
+
+//single user
+exports.getSingleuser = catchAsyncError(async(req, res, next) => {
+  const user = await User.findById(req.params.id)
+  if(!user){
+    return next(new ErrorHandler(`User is not found with  this ID:${req.params.id}`))
+  }
+  res.status(200).json({
+    user
+  })
+})
+
+//update role
+exports.updateRole = catchAsyncError(async(req, res, next) => {
+  const newUserData = {
+    username: req.body.name,
+    email: req.body.email,
+    role: req.body.role
+  }
+
+  const user = await User.findByIdAndUpdate(req.params.id, newUserData, {
+    new: true,
+    runValidators: true,
+    useFindModify: false
+  })
+
+  res.status(200).json({
+    success: true,
+    user
+  })
+})
+
+//delete user
+exports.deleteUser = catchAsyncError(async(req, res, next) => {
+  const user = await User.findById(req.params.id)
+
+  if(!user){
+    return next(new ErrorHandler("user not found", 404))
+  }
+
+  user.deleteOne()
+
+  res.status(200).json({
+    success: true
+  })
+})

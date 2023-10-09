@@ -50,7 +50,7 @@ const UserSchema = new mongoose.Schema(
 
 //generating password and convert it into hash
 UserSchema.pre("save", async function (next) {
-  if (!this.isModified(this.password)) {
+  if (!this.isModified("password")) {
     next();
   }
   this.password = await bcrypt.hash(this.password, 10);
@@ -65,7 +65,7 @@ UserSchema.methods.getJwtToken = function () {
 
 //comparing password
 UserSchema.methods.comparePassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password);
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 //reseting password
